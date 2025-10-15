@@ -24,7 +24,7 @@ program
   .requiredOption('-p, --prompt <text>', 'User prompt describing the feature')
   .option('-s, --sources <path>', 'Path to RAG sources configuration JSON')
   .option('-e, --env <environment>', 'Test environment (local, dev, staging, prod)')
-  .action(async (options) => {
+  .action(async (options: any) => {
     try {
       logger.info('Starting full agentic workflow');
 
@@ -60,7 +60,7 @@ program
   .requiredOption('-f, --feature <name>', 'Feature name')
   .requiredOption('-p, --prompt <text>', 'User prompt')
   .option('-s, --sources <path>', 'Path to RAG sources configuration JSON')
-  .action(async (options) => {
+  .action(async (options: any) => {
     try {
       logger.info('Starting QA-only workflow');
 
@@ -95,7 +95,7 @@ program
   .description('Run SDET Agent only (implement tests from existing scenarios)')
   .requiredOption('-f, --feature <name>', 'Feature name')
   .option('-s, --scenarios <path>', 'Path to scenarios file')
-  .action(async (options) => {
+  .action(async (options: any) => {
     try {
       logger.info('Starting SDET-only workflow');
 
@@ -137,7 +137,7 @@ program
   .description('Index documentation for RAG')
   .option('-c, --config <path>', 'Path to RAG sources configuration JSON')
   .option('--clear', 'Clear existing documents before indexing')
-  .action(async (options) => {
+  .action(async (_options: any) => {
     try {
       const { main } = await import('../../scripts/index-docs');
       await main();

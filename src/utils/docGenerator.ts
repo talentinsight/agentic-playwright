@@ -11,7 +11,7 @@ export class DocGenerator {
   /**
    * Update README_test.md with test information
    */
-  async updateTestReadme(featureName: string, scenarios: unknown[]): Promise<void> {
+  async updateTestReadme(_featureName: string, scenarios: unknown[]): Promise<void> {
     const readmePath = path.join(process.cwd(), 'README_test.md');
     
     let content = `# Test Execution Guide\n\n`;

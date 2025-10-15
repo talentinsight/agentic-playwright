@@ -61,7 +61,12 @@ export async function checkAccessibility(
 
   if (options.excludeTags) {
     for (const tag of options.excludeTags) {
-      builder.disableTags([tag]);
+      // axe-playwright exposes withTags/withoutTags in some versions; fallback to disableRules if needed
+      if ((builder as any).withoutTags) {
+        (builder as any).withoutTags([tag]);
+      } else if ((builder as any).disableTags) {
+        (builder as any).disableTags([tag]);
+      }
     }
   }
 
@@ -234,15 +239,17 @@ export async function checkKeyboardNavigation(page: Page): Promise<{
     for (let i = 0; i < Math.min(interactiveElements.length, 20); i++) {
       await page.keyboard.press('Tab');
       const focusedElement = await page.evaluate(() => {
-        const el = document.activeElement;
+        const g: any = globalThis as any;
+        const el = g.document?.activeElement;
+        if (!el) return { tag: null, id: null, class: null };
         return {
-          tag: el?.tagName,
-          id: el?.id,
-          class: el?.className,
+          tag: (el.tagName || null),
+          id: (el.id || null),
+          class: (el.className || null),
         };
       });
 
-      if (!focusedElement.tag) {
+      if (!focusedElement || !focusedElement.tag) {
         issues.push(`Tab ${i + 1}: No element received focus`);
       }
     }

@@ -218,5 +218,4 @@ export function getRAG(): RAG {
 // Re-export types
 export type { RetrievalContext, Citation } from './retriever';
 export type { Document, SearchResult } from './vectorStore';
-export type { RAGSourceConfig };
 

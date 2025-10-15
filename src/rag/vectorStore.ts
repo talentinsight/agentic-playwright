@@ -96,13 +96,23 @@ export class VectorStore {
 
     const ids = documents.map((doc) => doc.id);
     const contents = documents.map((doc) => doc.content);
-    const metadatas = documents.map((doc) => ({
-      ...doc.metadata,
-      // Ensure all metadata values are strings or numbers for ChromaDB
-      timestamp: doc.metadata.timestamp,
-      source: doc.metadata.source,
-      sourceType: doc.metadata.sourceType,
-    }));
+    const metadatas = documents.map((doc) => {
+      const metadata: Record<string, string | number | boolean> = {};
+      for (const [k, v] of Object.entries(doc.metadata)) {
+        if (v === undefined || v === null) continue;
+        if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+          metadata[k] = v;
+        } else {
+          // Fallback to JSON string for complex values
+          try {
+            metadata[k] = JSON.stringify(v as unknown as object);
+          } catch {
+            metadata[k] = String(v);
+          }
+        }
+      }
+      return metadata as any;
+    });
 
     await this.collection!.add({
       ids,
@@ -239,7 +249,7 @@ export class VectorStore {
 
     await this.collection!.update({
       ids: [id],
-      metadatas: [metadata],
+      metadatas: [metadata as any],
     });
 
     logger.info(`Updated metadata for document: ${id}`);

@@ -38,7 +38,7 @@ export class QualityGates {
     logger.info('Running quality gate validation');
 
     const {
-      requireStableRuns = 2,
+      requireStableRuns: _requireStableRuns = 2,
       minP0Coverage = 100,
       minSmokeCoverage = 100,
     } = options;

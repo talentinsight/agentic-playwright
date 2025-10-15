@@ -34,7 +34,6 @@ export const test = base.extend<{
    * Admin user page
    */
   adminPage: async ({ page }, use) => {
-    const config = getEnvConfig();
     const adminUser = process.env.ADMIN_USERNAME || 'admin@example.com';
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin-password';
 

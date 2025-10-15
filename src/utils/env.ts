@@ -26,11 +26,11 @@ const confluenceConfigSchema = z.object({
   apiToken: z.string().optional(),
 });
 
-// GitHub Configuration Schema
+// GitHub Configuration Schema (optional for local/dev)
 const githubConfigSchema = z.object({
-  token: z.string().min(1, 'GITHUB_TOKEN is required'),
-  repoOwner: z.string().min(1, 'GITHUB_REPO_OWNER is required'),
-  repoName: z.string().min(1, 'GITHUB_REPO_NAME is required'),
+  token: z.string().optional(),
+  repoOwner: z.string().optional(),
+  repoName: z.string().optional(),
   baseBranch: z.string().default('main'),
 });
 
@@ -62,6 +62,13 @@ const playwrightMcpConfigSchema = z.object({
   port: z.number().default(3000),
 });
 
+// General MCP configuration (for hosted or stdio transport)
+const mcpConfigSchema = z.object({
+  transport: z.enum(['stdio', 'http']).default('stdio'),
+  baseURL: z.string().url().optional(),
+  token: z.string().optional(),
+});
+
 // Feature Flags Schema
 const featureFlagsSchema = z.object({
   enableA11yTests: z.boolean().default(true),
@@ -85,6 +92,7 @@ const envConfigSchema = z.object({
   testEnv: testEnvConfigSchema,
   envUrls: envUrlsSchema,
   playwrightMcp: playwrightMcpConfigSchema,
+  mcp: mcpConfigSchema,
   featureFlags: featureFlagsSchema,
   logging: loggingConfigSchema,
   nodeEnv: z.enum(['development', 'production', 'test']).default('development'),
@@ -127,7 +135,7 @@ function parseEnvironment(): EnvConfig {
     },
     testEnv: {
       env: (process.env.TEST_ENV as TestEnvType) || 'staging',
-      baseUrl: process.env.TEST_BASE_URL || '',
+      baseUrl: process.env.TEST_BASE_URL || 'http://localhost:3000',
       username: process.env.TEST_USERNAME,
       password: process.env.TEST_PASSWORD,
     },
@@ -139,6 +147,11 @@ function parseEnvironment(): EnvConfig {
     playwrightMcp: {
       host: process.env.PLAYWRIGHT_MCP_HOST || 'localhost',
       port: parseInt(process.env.PLAYWRIGHT_MCP_PORT || '3000', 10),
+    },
+    mcp: {
+      transport: (process.env.MCP_TRANSPORT as 'stdio' | 'http') || 'stdio',
+      baseURL: process.env.MCP_BASE_URL,
+      token: process.env.MCP_TOKEN,
     },
     featureFlags: {
       enableA11yTests: process.env.ENABLE_A11Y_TESTS === 'true',

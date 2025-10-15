@@ -41,6 +41,8 @@ export const test = base.extend<{
       id: `test-${Date.now()}-${Math.random().toString(36).substring(7)}`,
     };
 
+    // Mark apiClient as used to satisfy TypeScript when linters/builders check for unused variables
+    void apiClient?.defaults;
     await use(testData);
 
     // Cleanup after test

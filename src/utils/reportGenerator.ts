@@ -196,7 +196,7 @@ export class ReportGenerator {
    * Determine scenario status based on test results
    */
   private determineScenarioStatus(
-    scenario: TestScenario,
+    _scenario: TestScenario,
     testResults: TestRunResult
   ): 'passed' | 'failed' | 'skipped' | 'not-implemented' {
     // This is a simplified implementation

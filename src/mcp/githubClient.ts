@@ -2,6 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { getEnvConfig } from '../utils/env';
 import { getLogger } from '../utils/logger';
+import { BaseMCPClient } from './baseClient';
 
 const logger = getLogger();
 
@@ -50,8 +51,10 @@ export interface CheckStatus {
 export class GitHubClient {
   private client: Client;
   private transport: StdioClientTransport | null = null;
+  private httpClient: BaseMCPClient | null = null;
   private connected: boolean = false;
   private config;
+  private useHttp: boolean = false;
 
   constructor() {
     const config = getEnvConfig();
@@ -71,6 +74,11 @@ export class GitHubClient {
       owner: config.github.repoOwner,
       repo: config.github.repoName,
     });
+    const env = getEnvConfig();
+    this.useHttp = env.mcp.transport === 'http';
+    if (this.useHttp && env.mcp.baseURL) {
+      this.httpClient = new BaseMCPClient({ baseURL: env.mcp.baseURL });
+    }
   }
 
   /**
@@ -80,19 +88,25 @@ export class GitHubClient {
     if (this.connected) return;
 
     try {
+      if (this.useHttp) {
+        this.connected = true;
+        logger.info('GitHubClient configured to use HTTP MCP transport');
+        return;
+      }
+
       // Connect to GitHub MCP server via stdio
       this.transport = new StdioClientTransport({
         command: 'npx',
         args: ['@modelcontextprotocol/server-github'],
         env: {
           ...process.env,
-          GITHUB_PERSONAL_ACCESS_TOKEN: this.config.github.token,
+          GITHUB_PERSONAL_ACCESS_TOKEN: this.config.github.token ?? '',
         },
       });
 
       await this.client.connect(this.transport);
       this.connected = true;
-      logger.info('Connected to GitHub MCP server');
+      logger.info('Connected to GitHub MCP server (stdio)');
     } catch (error) {
       logger.error('Failed to connect to GitHub MCP server', { error });
       throw error;
@@ -123,12 +137,20 @@ export class GitHubClient {
     }
 
     try {
-      const result = await this.client.callTool({
+      if (this.useHttp && this.httpClient) {
+        const resp = await this.httpClient.callMethod<string>(toolName, args);
+        if (!resp.success) {
+          throw new Error(resp.error || 'MCP HTTP request failed');
+        }
+        return (resp.data as unknown) as T;
+      }
+
+      const result: any = await this.client.callTool({
         name: toolName,
         arguments: args,
       });
 
-      return result.content[0].text as T;
+      return result?.content?.[0]?.text as T;
     } catch (error) {
       logger.error(`MCP tool call failed: ${toolName}`, { error, args });
       throw error;
@@ -186,7 +208,7 @@ export class GitHubClient {
       }
 
       // Get the latest commit SHA
-      const result = await this.callTool<string>('get_file_contents', {
+      await this.callTool<string>('get_file_contents', {
         owner: this.config.github.repoOwner,
         repo: this.config.github.repoName,
         path: options.files[0].path,
@@ -286,6 +308,11 @@ export class GitHubClient {
   async listTools(): Promise<string[]> {
     if (!this.connected) {
       await this.connect();
+    }
+
+    if (this.useHttp && this.httpClient) {
+      const resp = await this.httpClient.callMethod<{ tools: { name: string }[] }>('list.tools');
+      return (resp.data?.tools || []).map((t) => t.name);
     }
 
     const tools = await this.client.listTools();

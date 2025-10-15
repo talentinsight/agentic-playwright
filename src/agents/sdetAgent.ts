@@ -273,12 +273,13 @@ FILE: filename.spec.ts
       logger.error('Test execution failed', { error });
       
       // Return mock result for now (MCP server might not be running)
+      const fallbackCount = 0; // unknown scenario count at runtime
       return {
         success: false,
         passed: 0,
-        failed: scenarios.length,
+        failed: fallbackCount,
         skipped: 0,
-        total: scenarios.length,
+        total: fallbackCount,
         duration: 0,
         failures: [],
       };

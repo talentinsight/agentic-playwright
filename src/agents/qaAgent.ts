@@ -119,7 +119,7 @@ export class QAAgent extends BaseAgent {
   /**
    * Analyze requirements using RAG
    */
-  async analyzeRequirements(userPrompt: string, ragSources: RAGSourceConfig): Promise<RetrievalContext> {
+  async analyzeRequirements(userPrompt: string, _ragSources: RAGSourceConfig): Promise<RetrievalContext> {
     logger.info('Analyzing requirements with RAG');
 
     const queries = [
@@ -157,10 +157,11 @@ Please provide:
 Format as markdown.
 `;
 
-    const response = await this.chat(digestPrompt, { temperature: 0.5 });
-    
+    // Fire-and-forget generation of a digest (we keep the retrieved context as the primary data)
+    await this.chat(digestPrompt, { temperature: 0.5 });
+
     logger.info('Requirements digest generated');
-    
+
     return context;
   }
 
@@ -200,8 +201,8 @@ Generate at least 5-10 scenarios covering:
 Return ONLY the JSON array.
 `;
 
-    const response = await this.chat(scenarioPrompt, { temperature: 0.7 });
-    const scenarios = this.parseJSON<TestScenario[]>(response.content);
+  const response = await this.chat(scenarioPrompt, { temperature: 0.7 });
+  const scenarios = this.parseJSON<TestScenario[]>(response.content) || [];
 
     if (!scenarios || scenarios.length === 0) {
       logger.warn('Failed to parse scenarios, returning empty array');

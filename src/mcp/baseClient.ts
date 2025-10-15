@@ -149,5 +149,12 @@ export class BaseMCPClient {
   async getServerInfo(): Promise<MCPResponse<{ version: string; capabilities: string[] }>> {
     return this.request('server.info');
   }
+
+  /**
+   * Public helper to call any MCP method (wraps protected request)
+   */
+  async callMethod<T = unknown>(method: string, params?: Record<string, unknown>): Promise<MCPResponse<T>> {
+    return this.request<T>(method, params);
+  }
 }
 

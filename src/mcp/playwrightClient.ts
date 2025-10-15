@@ -1,6 +1,8 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { getLogger } from '../utils/logger';
+import { BaseMCPClient } from './baseClient';
+import { getEnvConfig } from '../utils/env';
 
 const logger = getLogger();
 
@@ -50,7 +52,9 @@ export interface RunTestOptions {
 export class PlaywrightClient {
   private client: Client;
   private transport: StdioClientTransport | null = null;
+  private httpClient: BaseMCPClient | null = null;
   private connected: boolean = false;
+  private useHttp: boolean = false;
 
   constructor() {
     this.client = new Client(
@@ -63,6 +67,11 @@ export class PlaywrightClient {
       }
     );
     logger.info('PlaywrightClient initialized');
+    const env = getEnvConfig();
+    this.useHttp = env.mcp.transport === 'http';
+    if (this.useHttp && env.mcp.baseURL) {
+      this.httpClient = new BaseMCPClient({ baseURL: env.mcp.baseURL });
+    }
   }
 
   /**
@@ -72,15 +81,23 @@ export class PlaywrightClient {
     if (this.connected) return;
 
     try {
-      // Connect to Playwright MCP server via stdio
+      if (this.useHttp) {
+        // HTTP transport doesn't need a stdio connection; just verify the endpoint
+        this.connected = true;
+        logger.info('PlaywrightClient configured to use HTTP MCP transport');
+        return;
+      }
+
+      // Connect to Playwright MCP server via stdio by invoking the official create-server helper
+      // This runs: npx @modelcontextprotocol/create-server playwright
       this.transport = new StdioClientTransport({
         command: 'npx',
-        args: ['@playwright/mcp-server'],
+        args: ['@modelcontextprotocol/create-server', 'playwright'],
       });
 
       await this.client.connect(this.transport);
       this.connected = true;
-      logger.info('Connected to Playwright MCP server');
+      logger.info('Connected to Playwright MCP server (stdio)');
     } catch (error) {
       logger.error('Failed to connect to Playwright MCP server', { error });
       throw error;
@@ -111,15 +128,47 @@ export class PlaywrightClient {
     }
 
     try {
-      const result = await this.client.callTool({
+      if (this.useHttp && this.httpClient) {
+        // Call hosted MCP via HTTP
+        const resp = await this.httpClient.callMethod<string>(toolName, args);
+        if (!resp.success) {
+          throw new Error(resp.error || 'MCP HTTP request failed');
+        }
+        return (resp.data as unknown) as T;
+      }
+
+      // Fallback to stdio MCP client
+      const result: any = await this.client.callTool({
         name: toolName,
         arguments: args,
       });
 
-      return result.content[0].text as T;
+      return result?.content?.[0]?.text as T;
     } catch (error) {
       logger.error(`MCP tool call failed: ${toolName}`, { error, args });
       throw error;
+    }
+  }
+
+  /**
+   * Health check for Playwright MCP server
+   */
+  async healthCheck(): Promise<boolean> {
+    if (!this.connected) {
+      try {
+        await this.connect();
+      } catch (err) {
+        return false;
+      }
+    }
+
+    try {
+      // Try listing tools as a lightweight check
+      const tools = await this.client.listTools();
+      return Array.isArray(tools.tools);
+    } catch (error) {
+      logger.warn('Playwright MCP health check failed', { error });
+      return false;
     }
   }
 
