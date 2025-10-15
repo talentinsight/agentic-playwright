@@ -1,0 +1,4 @@
+# Test Fixtures Directory
+
+This directory contains Playwright test fixtures for authentication, data setup, etc.
+

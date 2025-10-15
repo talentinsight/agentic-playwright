@@ -1,0 +1,28 @@
+{
+  "jira": {
+    "issues": [
+      "PROJ-123",
+      "PROJ-456",
+      "PROJ-789"
+    ],
+    "jql": "project = PROJ AND status = 'Ready for Testing' AND sprint in openSprints()"
+  },
+  "confluence": {
+    "pageIds": [
+      "123456",
+      "789012"
+    ],
+    "urls": [
+      "https://your-domain.atlassian.net/wiki/spaces/PROJ/pages/123456/Authentication+Flow",
+      "https://your-domain.atlassian.net/wiki/spaces/PROJ/pages/789012/User+Management"
+    ]
+  },
+  "local": {
+    "files": [
+      "./docs/requirements.md",
+      "./docs/api-spec.md",
+      "./docs/designs/login-flow.pdf"
+    ]
+  }
+}
+
